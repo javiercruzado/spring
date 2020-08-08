@@ -1,15 +1,19 @@
 package jacc.expensesmanager.restservice.dto;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+
 public class ExpenseDTO {
 
 	private int id;
 	private String categoryId;
 	private String categoryName;
-	private Integer debit;
+	private BigDecimal debit;
 	private Integer yearId;
 	private Integer monthId;
 	private Integer dayId;
 	private String note;
+	private LocalDate date;
 
 	public String getCategoryId() {
 		return categoryId;
@@ -35,11 +39,11 @@ public class ExpenseDTO {
 		this.categoryName = categoryName;
 	}
 
-	public Integer getDebit() {
+	public BigDecimal getDebit() {
 		return debit;
 	}
 
-	public void setDebit(Integer debit) {
+	public void setDebit(BigDecimal debit) {
 		this.debit = debit;
 	}
 
@@ -73,5 +77,13 @@ public class ExpenseDTO {
 
 	public void setNote(String note) {
 		this.note = note;
+	}
+
+	public LocalDate getDate() {
+		return date;
+	}
+
+	public void setDate(LocalDate date) {
+		this.date = date;
 	}
 }

@@ -1,5 +1,6 @@
 package jacc.expensesmanager.restservice.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,11 +40,18 @@ public class ExpensesRepository {
 			expenseDTO.setId(rs.getInt("id"));
 			expenseDTO.setCategoryId(rs.getString("categoryId"));
 			expenseDTO.setCategoryName(rs.getString("categoryname"));
-			expenseDTO.setDebit(rs.getInt("debit"));
+			expenseDTO.setDebit(BigDecimal.valueOf((double)rs.getInt("debit")/100));
 			expenseDTO.setYearId(rs.getInt("yearId"));
 			expenseDTO.setMonthId(rs.getInt("monthId"));
 			expenseDTO.setDayId(rs.getInt("dayId"));
 			expenseDTO.setNote(rs.getString("note"));
+			
+			int yearId = rs.getInt("yearId");
+			int dayOfYear = (rs.getInt("dayId")) % (yearId*1000);
+			
+			LocalDate date = LocalDate.ofYearDay(yearId, dayOfYear);
+			expenseDTO.setDate(date);					
+					
 			return expenseDTO;
 		});
 

@@ -3,6 +3,7 @@ package jacc.expensesmanager.restservice.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +18,7 @@ public class ExpensesController {
 	@Autowired
 	ExpensesRepository expenseRepo;
 
+	@CrossOrigin(origins = "http://localhost:3000")
 	@GetMapping("/expenses")
 	public List<ExpenseDTO> searchExpenses(@RequestParam(value = "category", defaultValue = "") String category,
 			@RequestParam(name = "noteLike", defaultValue = "") String noteLike,
@@ -26,6 +28,7 @@ public class ExpensesController {
 		return expenseRepo.getExpenses(category, noteLike, fromDate, toDate);
 	}
 
+	@CrossOrigin(origins = "http://localhost:3000")
 	@GetMapping("/categories")
 	public List<CategoryDTO> searchExpenses() {
 		return expenseRepo.getCategories();
