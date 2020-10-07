@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import jacc.expensesmanager.restservice.dto.CategoryDTO;
 import jacc.expensesmanager.restservice.dto.ExpenseDTO;
 import jacc.expensesmanager.restservice.dto.ExpensesRepository;
+import jacc.expensesmanager.restservice.dto.GroupedExpenses;
 
 @RestController
 public class ExpensesController {
@@ -33,4 +34,17 @@ public class ExpensesController {
 	public List<CategoryDTO> searchExpenses() {
 		return expenseRepo.getCategories();
 	}
+
+	@CrossOrigin(origins = "http://localhost:3000")
+	@GetMapping("/expensesByGroup")
+	public List<GroupedExpenses> searchExpensesByGroup(
+			@RequestParam(value = "category", defaultValue = "") String category,
+			@RequestParam(name = "noteLike", defaultValue = "") String noteLike,
+			@RequestParam(name = "fromDate", defaultValue = "2000-01-01") String fromDate,
+			@RequestParam(name = "toDate", defaultValue = "2099-12-31") String toDate,
+			@RequestParam(name = "groupBy", defaultValue = "") String groupBy) {
+
+		return expenseRepo.getExpenses(category, noteLike, fromDate, toDate, groupBy);
+	}
+
 }

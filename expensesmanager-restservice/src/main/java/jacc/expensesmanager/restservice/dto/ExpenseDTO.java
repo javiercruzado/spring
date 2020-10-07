@@ -14,6 +14,7 @@ public class ExpenseDTO {
 	private Integer dayId;
 	private String note;
 	private LocalDate date;
+	private String month;
 
 	public String getCategoryId() {
 		return categoryId;
@@ -85,5 +86,13 @@ public class ExpenseDTO {
 
 	public void setDate(LocalDate date) {
 		this.date = date;
+	}
+
+	public String getMonth() {
+		return month;
+	}
+
+	public void setMonth(String month) {
+		this.month = month;
 	}
 }

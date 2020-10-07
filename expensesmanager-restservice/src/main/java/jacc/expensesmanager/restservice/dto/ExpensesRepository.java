@@ -2,8 +2,15 @@ package jacc.expensesmanager.restservice.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.TextStyle;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -20,8 +27,7 @@ public class ExpensesRepository {
 			+ "	cat.name \"categoryname\",\n" + "	debit,\n" + "	yearId,\n" + "	monthId,\n" + "	dayId,\n"
 			+ "	ti.note from TransactionItem ti\n" + "join Category cat on	cat.id = ti.categoryId "
 			+ "where (LOWER(cat.name) = :categoryName or :categoryName = '') "
-			+ "and (LOWER(ti.note) like :noteLike or :noteLike = '') "
-			+ "and :fromDay < dayId AND dayId < :toDay";
+			+ "and (LOWER(ti.note) like :noteLike or :noteLike = '') " + "and :fromDay < dayId AND dayId < :toDay";
 
 	public static String QUERY_CATEGORIES = "select * from Category order by name";
 	// Spring Boot will automagically wire this object using application.properties:
@@ -40,33 +46,114 @@ public class ExpensesRepository {
 			expenseDTO.setId(rs.getInt("id"));
 			expenseDTO.setCategoryId(rs.getString("categoryId"));
 			expenseDTO.setCategoryName(rs.getString("categoryname"));
-			expenseDTO.setDebit(BigDecimal.valueOf((double)rs.getInt("debit")/100));
+			expenseDTO.setDebit(BigDecimal.valueOf((double) rs.getInt("debit") / 100));
 			expenseDTO.setYearId(rs.getInt("yearId"));
-			expenseDTO.setMonthId(rs.getInt("monthId"));
+			// expenseDTO.setMonthId(rs.getInt("monthId"));
 			expenseDTO.setDayId(rs.getInt("dayId"));
 			expenseDTO.setNote(rs.getString("note"));
-			
+
 			int yearId = rs.getInt("yearId");
-			int dayOfYear = (rs.getInt("dayId")) % (yearId*1000);
-			
+			int dayOfYear = (rs.getInt("dayId")) % (yearId * 1000);
+
 			LocalDate date = LocalDate.ofYearDay(yearId, dayOfYear);
-			expenseDTO.setDate(date);					
-					
+
+			expenseDTO.setDate(date);
+			expenseDTO.setMonthId(date.getMonthValue());
+			expenseDTO.setMonth(date.getMonth().getDisplayName(TextStyle.SHORT, Locale.US));
+
 			return expenseDTO;
 		});
 
 		return expenses;
 	}
-	
+
 	public List<CategoryDTO> getCategories() {
-	    List<CategoryDTO> categories = template.query(
-	    		QUERY_CATEGORIES,
-	            new BeanPropertyRowMapper<CategoryDTO>(CategoryDTO.class));
-	    return categories;
+		List<CategoryDTO> categories = template.query(QUERY_CATEGORIES,
+				new BeanPropertyRowMapper<CategoryDTO>(CategoryDTO.class));
+		return categories;
 	}
-	
-	//helpers
-	
+
+	public List<GroupedExpenses> getExpenses(String category, String noteLike, String fromDate, String toDate,
+			String groupBy) {
+
+		List<ExpenseDTO> expenses = getExpenses(category, noteLike, fromDate, toDate);
+		List<GroupedExpenses> groupedExpenses = new ArrayList<>();
+
+		// oolean keyIsValid =
+		List<GroupedKey> test = Arrays.asList(GroupedKey.values());
+		Optional<GroupedKey> test2 = test.stream().filter(x -> x.toString().equalsIgnoreCase(groupBy)).findAny();
+
+		GroupedKey caseConstant = test2.isPresent() ? GroupedKey.valueOf(groupBy.toUpperCase()) : GroupedKey.YEARTOTAL;
+
+		switch (caseConstant) {
+
+		case YEARCATEGORYTOTAL:
+			Map<String, Double> yearlyCategoryExpenses = expenses.stream()
+					.collect(Collectors.groupingBy(
+							x -> x.getYearId() + GroupedExpenses.GROUP_SEPARATOR + x.getCategoryName(),
+							Collectors.summingDouble(x -> x.getDebit().doubleValue())));
+			yearlyCategoryExpenses.forEach((k, v) -> {
+				GroupedExpenses ge = new GroupedExpenses();
+				ge.setAmount(v);
+				ge.setGroupby(groupBy);
+				ge.setGroupKey(k.toString(), GroupedKey.YEARCATEGORYTOTAL);
+				groupedExpenses.add(ge);
+			});
+
+			break;
+
+		case MONTHCATEGORYTOTAL:
+			Map<String, Double> monthlyCategoryExpenses = expenses.stream()
+					.collect(Collectors.groupingBy(
+							x -> x.getYearId() + GroupedExpenses.GROUP_SEPARATOR + x.getMonthId()
+									+ GroupedExpenses.GROUP_SEPARATOR + x.getCategoryName(),
+							Collectors.summingDouble(x -> x.getDebit().doubleValue())));
+			monthlyCategoryExpenses.forEach((k, v) -> {
+				GroupedExpenses ge = new GroupedExpenses();
+				ge.setAmount(v);
+				ge.setGroupby(groupBy);
+				ge.setGroupKey(k.toString(), GroupedKey.MONTHCATEGORYTOTAL);
+				groupedExpenses.add(ge);
+			});
+
+			break;
+
+		case YEARTOTAL:
+			Map<Integer, Double> yearlyExpenses = expenses.stream().collect(Collectors.groupingBy(ExpenseDTO::getYearId,
+					Collectors.summingDouble(x -> x.getDebit().doubleValue())));
+			yearlyExpenses.forEach((k, v) -> {
+				GroupedExpenses ge = new GroupedExpenses();
+				ge.setAmount(v);
+				ge.setGroupby(groupBy);
+				ge.setGroupKey(k.toString(), GroupedKey.YEARTOTAL);
+				groupedExpenses.add(ge);
+			});
+
+			break;
+
+		case MONTHTOTAL:
+		default:
+			Map<String, Double> montlyExpenses = expenses.stream().collect(
+					Collectors.groupingBy(x -> x.getYearId() + GroupedExpenses.GROUP_SEPARATOR + x.getMonthId(),
+							Collectors.summingDouble(x -> x.getDebit().doubleValue())));
+
+			montlyExpenses.forEach((k, v) -> {
+				GroupedExpenses ge = new GroupedExpenses();
+				ge.setAmount(v);
+				ge.setGroupby(groupBy);
+				ge.setGroupKey(k.toString(), GroupedKey.MONTHTOTAL);
+				groupedExpenses.add(ge);
+			});
+			break;
+		}
+
+		return groupedExpenses.stream()
+				.sorted((x, y) -> x.getYear() * 100 + x.getMonth() >= y.getYear() * 100 + y.getMonth() ? 1 : -1)
+				.collect(Collectors.toList());
+	}
+
+	// helpers
+
 	/**
 	 * 
 	 * @param date, format "2020-06-18T03:02:06.851+0000"
