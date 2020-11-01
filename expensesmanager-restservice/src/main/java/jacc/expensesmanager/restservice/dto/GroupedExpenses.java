@@ -1,6 +1,6 @@
 package jacc.expensesmanager.restservice.dto;
 
-public class GroupedExpenses {
+public class GroupedExpenses implements Comparable<GroupedExpenses>{
 
 	public static final String GROUP_SEPARATOR = "-";
 
@@ -86,6 +86,28 @@ public class GroupedExpenses {
 			break;
 		}
 
+	}
+
+	@Override
+	public int compareTo(GroupedExpenses ge) {
+		if (this.year > ge.year) {
+			return 1;
+		} else if (this.year < ge.year) {
+			return -1;
+		} else if (this.month > ge.month) {
+			return 1;
+		} else if (this.month < ge.month) {
+			return -1;
+		} else if (this.category.compareTo(ge.category) > 1) {
+			return 1;
+		} else if (this.category.compareTo(ge.category) < 1) {
+			return -1;
+		} else if (this.amount > ge.amount) {
+			return 1;
+		} else if (this.amount < ge.amount) {
+			return -1;
+		}
+		return 0;
 	}
 
 }

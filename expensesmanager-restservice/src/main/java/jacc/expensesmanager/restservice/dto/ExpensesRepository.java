@@ -1,6 +1,7 @@
 package jacc.expensesmanager.restservice.dto;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
@@ -10,7 +11,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -27,7 +27,8 @@ public class ExpensesRepository {
 			+ "	cat.name \"categoryname\",\n" + "	debit,\n" + "	yearId,\n" + "	monthId,\n" + "	dayId,\n"
 			+ "	ti.note from TransactionItem ti\n" + "join Category cat on	cat.id = ti.categoryId "
 			+ "where (LOWER(cat.name) = :categoryName or :categoryName = '') "
-			+ "and (LOWER(ti.note) like :noteLike or :noteLike = '') " + "and :fromDay < dayId AND dayId < :toDay";
+			+ "and (LOWER(ti.note) like :noteLike or :noteLike = '') "
+			+ "and :fromDay < dayId AND dayId < :toDay order by yearId, monthId, dayId";
 
 	public static String QUERY_CATEGORIES = "select * from Category order by name";
 	// Spring Boot will automagically wire this object using application.properties:
@@ -46,7 +47,11 @@ public class ExpensesRepository {
 			expenseDTO.setId(rs.getInt("id"));
 			expenseDTO.setCategoryId(rs.getString("categoryId"));
 			expenseDTO.setCategoryName(rs.getString("categoryname"));
-			expenseDTO.setDebit(BigDecimal.valueOf((double) rs.getInt("debit") / 100));
+			
+			BigDecimal amount = new BigDecimal(Double.toString(rs.getInt("debit") / 100));
+		    amount = amount.setScale(2, RoundingMode.HALF_UP);
+		    
+			expenseDTO.setDebit(new BigDecimal(amount.doubleValue()));
 			expenseDTO.setYearId(rs.getInt("yearId"));
 			// expenseDTO.setMonthId(rs.getInt("monthId"));
 			expenseDTO.setDayId(rs.getInt("dayId"));
@@ -79,7 +84,6 @@ public class ExpensesRepository {
 		List<ExpenseDTO> expenses = getExpenses(category, noteLike, fromDate, toDate);
 		List<GroupedExpenses> groupedExpenses = new ArrayList<>();
 
-		// oolean keyIsValid =
 		List<GroupedKey> test = Arrays.asList(GroupedKey.values());
 		Optional<GroupedKey> test2 = test.stream().filter(x -> x.toString().equalsIgnoreCase(groupBy)).findAny();
 
@@ -147,9 +151,7 @@ public class ExpensesRepository {
 			break;
 		}
 
-		return groupedExpenses.stream()
-				.sorted((x, y) -> x.getYear() * 100 + x.getMonth() >= y.getYear() * 100 + y.getMonth() ? 1 : -1)
-				.collect(Collectors.toList());
+		return groupedExpenses.stream().sorted((x, y) -> x.compareTo(y)).collect(Collectors.toList());
 	}
 
 	// helpers
