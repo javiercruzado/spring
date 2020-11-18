@@ -96,11 +96,11 @@ export default class DashBoard extends React.Component {
       let updatedDate = new Date(date.getFullYear(), date.getMonth(), 1)
 
       if (this.props.view === VIEW_STATITICS_BYMONTH_CATEGORY) {
-        updatedDate = new Date(date.getFullYear(), date.getMonth(), 1)
+        updatedDate = new Date(date.getFullYear(), date.getMonth() - 1, 1)
       } else if (this.props.view === VIEW_STATITICS_BYMONTH) {
         updatedDate = new Date(date.getFullYear(), 0, 1)
       } else if (this.props.view === VIEW_STATITICS_BYYEAR) {
-        updatedDate = new Date(date.getFullYear() - 10, 1, 1)
+        updatedDate = new Date(date.getFullYear() - 10, 0, 1)
       }
 
       this.setState({ filter: { ...this.state.filter, fromDate: updatedDate } },
