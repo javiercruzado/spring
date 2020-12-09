@@ -28,7 +28,7 @@ public class ExpensesRepository {
 			+ "	ti.note from TransactionItem ti\n" + "join Category cat on	cat.id = ti.categoryId "
 			+ "where (LOWER(cat.name) = :categoryName or :categoryName = '') "
 			+ "and (LOWER(ti.note) like :noteLike or :noteLike = '') "
-			+ "and :fromDay < dayId AND dayId < :toDay order by yearId, monthId, dayId";
+			+ "and :fromDay <= dayId AND dayId <= :toDay order by yearId, monthId, dayId";
 
 	public static String QUERY_CATEGORIES = "select * from Category order by name";
 	// Spring Boot will automagically wire this object using application.properties:

@@ -14,6 +14,47 @@ const dateToISOShortDate = (date = new Date()) => {
   return date.toISOString().substr(0, 10);
 }
 
+const exportDataToCsv = (view, filter, expensesByGroup, expenses) => {
+
+  let fileName = 'expenses_'
+  let csvContent = "data:text/csv;charset=utf-8,"
+  let csvDataAsRows = ''
+  let header = ''
+  let encodedUri = ''
+  let link = ''
+
+  if ([VIEW_STATITICS_BYYEAR, VIEW_STATITICS_BYMONTH, VIEW_STATITICS_BYMONTH_CATEGORY].includes(view)) {
+    switch (view) {
+      case VIEW_STATITICS_BYYEAR:
+        fileName += "by_year_" + dateToISOShortDate(filter.fromDate) + '.csv'
+        break;
+      case VIEW_STATITICS_BYMONTH:
+        fileName += "by_month_" + dateToISOShortDate(filter.fromDate) + '.csv'
+        break;
+      case VIEW_STATITICS_BYMONTH_CATEGORY:
+        fileName += "by_category_month_" + dateToISOShortDate(filter.fromDate) + '.csv'
+        break;
+      default:
+        break;
+    }
+
+    header = 'Year,Month,Category,Amount\n'
+    csvDataAsRows = expensesByGroup.map(x => (x.year + ',' + x.month + ',' + (x.category || '') + ',' + x.amount)).join("\n")
+  }
+  else {
+    fileName = "by_details_" + dateToISOShortDate(filter.fromDate) + '.csv'
+    header = 'Date,Category,Amount,Notes\n'
+    csvDataAsRows = expenses.map(x => (x.date + ',' + (x.categoryName || '') + ',' + x.debit + ',' + (x.note || ''))).join("\n")
+  }
+
+  encodedUri = encodeURI(csvContent + header + csvDataAsRows);
+  link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", fileName);
+  link.click();
+  document.body.appendChild(link); // Required for FF
+}
+
 const Board = ({ view, categories, expenses, expensesByGroup, filter, updateFilter }) => {
 
   let board = []
@@ -29,7 +70,8 @@ const Board = ({ view, categories, expenses, expensesByGroup, filter, updateFilt
       <div className="btn-toolbar mb-2 mb-md-0">
         <div className="btn-group mr-2">
           <button type="button" className="btn btn-sm btn-outline-secondary">Share</button>
-          <button type="button" className="btn btn-sm btn-outline-secondary">Export</button>
+          <button type="button" className="btn btn-sm btn-outline-secondary" 
+            onClick={() => exportDataToCsv(view, filter, expensesByGroup, expenses)}>Export</button>
         </div>
         <button type="button" className="btn btn-sm btn-outline-secondary dropdown-toggle">
           <span data-feather="calendar"></span>
@@ -93,7 +135,7 @@ export default class DashBoard extends React.Component {
   componentDidUpdate(prevProps, prevState) {
     if (prevProps.view !== this.props.view) {
       let date = new Date()
-      let updatedDate = new Date(date.getFullYear(), date.getMonth(), 1)
+      let updatedDate = new Date(date.getFullYear(), date.getMonth() - 1, 1)
 
       if (this.props.view === VIEW_STATITICS_BYMONTH_CATEGORY) {
         updatedDate = new Date(date.getFullYear(), date.getMonth() - 1, 1)
